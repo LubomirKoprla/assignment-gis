@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset='utf-8' />
+		<title>Zeleň</title>
+		<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+		<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.js'></script>
+		<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.css' rel='stylesheet' />
+		<style>
+			body { margin:0; padding:0; }
+			#map { position:absolute; top:0; bottom:0; width:100%; }
+		</style>
+	</head>
+	<body>
+		<style>
+			#menu {
+				position: absolute;
+				background: #fff;
+				padding: 10px;
+				font-family: 'Open Sans', sans-serif;
+			}
+			
+			.calculation-box {
+				height: 75px;
+				width: 150px;
+				position: absolute;
+				bottom: 40px;
+				left: 10px;
+				background-color: rgba(255, 255, 255, .9);
+				padding: 15px;
+				text-align: center;
+			}
+
+			p {
+				font-family: 'Open Sans';
+				margin: 0;
+				font-size: 13px;
+			}
+		</style>
+	 
+		<script src='https://api.tiles.mapbox.com/mapbox.js/plugins/turf/v3.0.11/turf.min.js'></script>
+		<script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.js'></script>
+		<link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.css' type='text/css'/>
+
+		<div id='map'></div>
+		
+		<div class='calculation-box'>
+			<p>Nakreslite polygon na výpočet zastavenej plochy</p>
+			<div id='calculated-area'></div>
+		</div>
+		
+		<script>
+		
+			//set mapbox
+			mapboxgl.accessToken = 'pk.eyJ1IjoibHVib21pcmtvcHJsYSIsImEiOiJjam55Y2toOWQyM2tkM3Bwam12aXVnN3ZqIn0.W6ZsI-NcM81yDTyt7Ek2mQ';
+			const map = new mapboxgl.Map({
+				container: 'map',
+				style: 'mapbox://styles/lubomirkoprla/cjnyowj0n8pfm2rum8q9vxa5j',
+				center: [19.683563, 48.630618],
+				zoom: 7
+			});
+			
+			//add Polygogn draw buttons
+			var draw = new MapboxDraw({
+				displayControlsDefault: false,
+				controls: {
+					polygon: true,
+					trash: true
+				}
+			});
+			map.addControl(draw);
+			
+			//add listeners on polygon actions
+			map.on('draw.create', updateArea);
+			map.on('draw.delete', updateArea);
+			map.on('draw.update', updateArea);
+			
+			//listener on polygon actions
+			async function updateArea(e) {
+				var data = draw.getAll();
+				var answer = document.getElementById('calculated-area');
+				if (data.features.length > 0) {
+
+					
+					let response = await fetch("http://localhost:3000/api/buildpercent", {
+						method: "POST",
+						headers: {'Content-Type':'application/json'},
+						body: JSON.stringify(data.features[0].geometry)
+					});
+					var response_data = await response.json();
+					
+					console.log(JSON.stringify(data.features[0].geometry)) 
+					answer.innerHTML = '<p><strong>' + Math.round(response_data[0].result * 100) / 100 + '</strong></p><p>percent zastavanej plochy</p>';
+				} else {
+					answer.innerHTML = '';
+					if (e.type !== 'draw.delete') alert("Use the draw tools to draw a polygon!");
+				}
+			}
+			
+			
+			//function to draw points 
+			map.on('load', function () {
+				var layer = {
+					"id": "greenCities",
+					"type": "symbol",
+					"source": {
+						"type": "geojson",
+						"data": {
+							"type": "FeatureCollection",
+							"features": []
+						}
+					},
+					"layout": {
+						"icon-image": "{icon}-15",
+						"text-field": "{title}",
+						"text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+						"text-offset": [0, 0.6],
+						"text-anchor": "top"
+					}
+				}
+				var data = '<%- JSON.stringify(greencities) %>';
+				
+				data = JSON.parse(data);
+				var i;
+				for(i = 0; i < 10; ++i) {
+					
+					layer.source.data.features[i] = {
+								"type": "Feature",
+								"geometry": {
+									"type": "Point",
+									"coordinates": [data[i].x, data[i].y]
+								},
+								"properties": {
+									"title": data[i].name,
+									"icon": "park"
+								}
+							}
+					
+				}
+				
+				map.addLayer(layer);
+			});
+			
+			
+			map.on('click', async function(e) {
+				var features = map.queryRenderedFeatures(e.point, {
+					layers: ['greenCities'] 
+				});
+
+				if (!features.length) {
+					return;
+				}
+				
+				var feature = features[0];
+				
+				var req = {name : feature.properties.title}
+					
+				let response = await fetch("http://localhost:3000/api/description", {
+					method: "POST",
+					headers: {'Content-Type':'application/json'},
+					body: JSON.stringify(req)
+				});
+				var response_data = await response.json();	
+				console.log(response_data)
+				
+				var distance = 100
+				var poi = 10
+				var popup = new mapboxgl.Popup({ offset: [0, -15] })
+					.setLngLat(feature.geometry.coordinates)
+					.setHTML('<h3>' + feature.properties.title + '</h3><p>' + Math.round(response_data.distance_ba) + ' km od Bratislavy</p><p>' + response_data.poi_count + ' zaujimavosti v okoli</p><h4>Susedné obce</h4>' +  response_data.neighboring_cities)
+					.setLngLat(feature.geometry.coordinates)
+					.addTo(map);
+			});
+		</script>
+	 
+	</body>
+</html>
