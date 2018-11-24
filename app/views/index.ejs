@@ -166,11 +166,22 @@
 				
 				var distance = 100
 				var poi = 10
-				var popup = new mapboxgl.Popup({ offset: [0, -15] })
-					.setLngLat(feature.geometry.coordinates)
-					.setHTML('<h3>' + feature.properties.title + '</h3><p>' + Math.round(response_data.distance_ba) + ' km od Bratislavy</p><p>' + response_data.poi_count + ' zaujimavosti v okoli</p><h4>Susedné obce</h4>' +  response_data.neighboring_cities)
-					.setLngLat(feature.geometry.coordinates)
-					.addTo(map);
+				if(response_data.bike_length > 0) {
+					var popup = new mapboxgl.Popup({ offset: [0, -15] })
+						.setLngLat(feature.geometry.coordinates)
+						.setHTML('<h3>' + feature.properties.title + '</h3><p>+ bicykel</p><p>' + Math.round(response_data.distance_ba) + ' km od Bratislavy</p><p>' + response_data.poi_count + ' zaujimavosti v okoli</p><h4>Susedné obce</h4>' +  response_data.neighboring_cities)
+						.setLngLat(feature.geometry.coordinates)
+						.addTo(map);
+				}	
+				else {
+					var popup = new mapboxgl.Popup({ offset: [0, -15] })
+						.setLngLat(feature.geometry.coordinates)
+						.setHTML('<h3>' + feature.properties.title + '</h3><p>' + Math.round(response_data.distance_ba) + ' km od Bratislavy</p><p>' + response_data.poi_count + ' zaujimavosti v okoli</p><h4>Susedné obce</h4>' +  response_data.neighboring_cities)
+						.setLngLat(feature.geometry.coordinates)
+						.addTo(map);
+				}
+					
+				
 			});
 		</script>
 	 

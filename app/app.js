@@ -113,6 +113,12 @@ var query_distance_ba = "	SELECT \
 								FROM planet_osm_polygon 	\
 								WHERE boundary='administrative' AND admin_level='9' AND osm_id=$1 LIMIT 1)  as city"
 								
+var query_bike = "	SELECT 	\
+						SUM(ST_Length(osm.way)) as bike_length	\
+					FROM planet_osm_roads osm	\
+					JOIN (SELECT way FROM planet_osm_polygon WHERE osm_id = $1 LIMIT 1) city	\
+						ON ST_Intersects(city.way,osm.way)	\
+					WHERE bicycle = 'yes'"
 app.post('/api/description', jsonParser, async function(req, res) {
 	try {
 		var values = [req.body];
@@ -132,11 +138,17 @@ app.post('/api/description', jsonParser, async function(req, res) {
 		var result = await client.query(query_poi,[values[0].osm_id]);
 		var poi_count = result.rows[0].count;
 		
+		
+		var result = await client.query(query_bike,[values[0].osm_id]);
+		var bike_length = result.rows[0].bike_length;
+		
 		var results_json = {
 			neighboring_cities : cities,
 			distance_ba : distance_ba,
-			poi_count : poi_count
+			poi_count : poi_count,
+			bike_length : bike_length
 		};
+		console.log(bike_length)
 		res.json(results_json);
 	} catch (err) {
 		console.log(err);
