@@ -22,21 +22,23 @@ let client = new pg.Client({
 
 let query = "	SELECT \
 					name, 	\
+					osm_id, \
 					ST_AsGeoJSON(ST_Centroid(ST_Transform(way, 4326))) as centroid	\
 				FROM (	\
 					SELECT 	\
 						cities.name as name,	\
 						cities.way as way, 	\
+						cities.osm_id as osm_id, \
 						SUM(ST_Area(polygons.way))/ST_Area(cities.way) as nature_perc 	\
 					FROM 	\
 						planet_osm_polygon polygons 	\
 					JOIN (	\
-						SELECT DISTINCT name,way 	\
+						SELECT DISTINCT name,way,osm_id 	\
 						FROM planet_osm_polygon 	\
 						WHERE boundary='administrative' AND admin_level='9' AND name IS NOT NULL) as cities	\
 					ON ST_Contains(cities.way,polygons.way) WHERE polygons.natural IS NOT NULL	\
-					GROUP BY 1,2	\
-					ORDER BY 3 DESC	\
+					GROUP BY 1,2,3	\
+					ORDER BY 4 DESC	\
 					LIMIT 10) as result"
 app.get('/', async function (req, res) {
 	try {
@@ -47,7 +49,8 @@ app.get('/', async function (req, res) {
 			results_json[i] = {
 				x : JSON.parse(result.rows[i].centroid).coordinates[0],
 				y : JSON.parse(result.rows[i].centroid).coordinates[1],
-				name : result.rows[i].name
+				name : result.rows[i].name,
+				osm_id : result.rows[i].osm_id
 			};
 		}
 		res.render('index', {greencities: results_json});
@@ -60,13 +63,13 @@ app.get('/', async function (req, res) {
 var query_buildpercent = "	SELECT SUM(ST_Area(ST_Intersection(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON($1),4326),3857),way)))/				\
 								   ST_Area(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON($1),4326),3857))*100	AS result 							\
 							FROM planet_osm_polygon osm 																						\
-							WHERE ST_Intersects(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON($1),4326),3857),way) AND osm.building = 'yes'"
+							WHERE ST_Intersects(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON($1),4326),3857),way) AND osm.building IS NOT NULL"
+
 app.post('/api/buildpercent', jsonParser, async function(req, res) {
 	try {
 		var values = [req.body];
 		
-		console.log(values)
-		let result = await client.query(query_buildpercent,values);
+		var result = await client.query(query_buildpercent,values);
 		console.log(result.rows);
 		res.json(result.rows);
 	} catch (err) {
@@ -85,7 +88,7 @@ var query_neighboring = "	SELECT \
 							JOIN \
 								(SELECT way \
 								FROM planet_osm_polygon \
-								WHERE boundary='administrative' AND admin_level='9' AND name = $1)  as city\
+								WHERE boundary='administrative' AND admin_level='9' AND osm_id = $1)  as city\
 							ON ST_Touches(cities.way,city.way) "
 							
 var query_poi = "	SELECT 	\
@@ -94,7 +97,7 @@ var query_poi = "	SELECT 	\
 					JOIN (	\
 						SELECT way 	\
 						FROM planet_osm_polygon 	\
-						WHERE boundary='administrative' AND admin_level='9' AND name = $1 LIMIT 1)  as city	\
+						WHERE boundary='administrative' AND admin_level='9' AND osm_id = $1 LIMIT 1)  as city	\
 					ON	ST_DWithin(poi.way,city.way,4000)	\
 					WHERE 	\
 						poi.historic IS NOT NULL OR poi.sport IS NOT NULL"
@@ -108,12 +111,12 @@ var query_distance_ba = "	SELECT \
 							CROSS JOIN (	\
 								SELECT way 	\
 								FROM planet_osm_polygon 	\
-								WHERE boundary='administrative' AND admin_level='9' AND name=$1 LIMIT 1)  as city"
+								WHERE boundary='administrative' AND admin_level='9' AND osm_id=$1 LIMIT 1)  as city"
 								
 app.post('/api/description', jsonParser, async function(req, res) {
 	try {
 		var values = [req.body];
-		var result = await client.query(query_neighboring,[values[0].name]);
+		var result = await client.query(query_neighboring,[values[0].osm_id]);
 		var i;
 		var cities = "<ul>"
 		for(i = 0; i < result.rows.length; ++i) {
@@ -123,10 +126,10 @@ app.post('/api/description', jsonParser, async function(req, res) {
 		}
 		cities += "</ul>";
 		
-		var result = await client.query(query_distance_ba,[values[0].name]);
+		var result = await client.query(query_distance_ba,[values[0].osm_id]);
 		var distance_ba = result.rows[0].distance;
 		
-		var result = await client.query(query_poi,[values[0].name]);
+		var result = await client.query(query_poi,[values[0].osm_id]);
 		var poi_count = result.rows[0].count;
 		
 		var results_json = {
@@ -134,7 +137,6 @@ app.post('/api/description', jsonParser, async function(req, res) {
 			distance_ba : distance_ba,
 			poi_count : poi_count
 		};
-		console.log(results_json);
 		res.json(results_json);
 	} catch (err) {
 		console.log(err);

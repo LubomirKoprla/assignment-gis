@@ -132,7 +132,8 @@
 								},
 								"properties": {
 									"title": data[i].name,
-									"icon": "park"
+									"icon": "park",
+									"osm_id" : data[i].osm_id
 								}
 							}
 					
@@ -153,7 +154,7 @@
 				
 				var feature = features[0];
 				
-				var req = {name : feature.properties.title}
+				var req = {osm_id : feature.properties.osm_id}
 					
 				let response = await fetch("http://localhost:3000/api/description", {
 					method: "POST",
