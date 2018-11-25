@@ -1,27 +1,9 @@
-# General course assignment
+**Application description**: Application shows TOP10 green cities in Slovakia. You can draw polygon on map and application calculates the ratio of built-up area in polygon. When you can click on "green city", application show description of city: if there is railway, distance from Bratislava, number of POI arround the city and   neighboring cities
 
-Build a map-based application, which lets the user see geo-based data on a map and filter/search through it in a meaningfull way. Specify the details and build it in your language of choice. The application should have 3 components:
+**Data source**: [Open Street Maps](https://www.openstreetmap.org/), data covering whole Slovakia
 
-1. Custom-styled background map, ideally built with [mapbox](http://mapbox.com). Hard-core mode: you can also serve the map tiles yourself using [mapnik](http://mapnik.org/) or similar tool.
-2. Local server with [PostGIS](http://postgis.net/) and an API layer that exposes data in a [geojson format](http://geojson.org/).
-3. The user-facing application (web, android, ios, your choice..) which calls the API and lets the user see and navigate in the map and shows the geodata. You can (and should) use existing components, such as the Mapbox SDK, or [Leaflet](http://leafletjs.com/).
+**Technologies used**: Node.js (framework Express), PostgreSQL(extension PostGIS), Mapbox
 
-## Example projects
+**SQL queries used in project**:  [Create indexes](index.sql), [SELECTs](query.sql) 
 
-- Showing nearby landmarks as colored circles, each type of landmark has different circle color and the more interesting the landmark is, the bigger the circle. Landmarks are sorted in a sidebar by distance to the user. It is possible to filter only certain landmark types (e.g., castles).
-
-- Showing bicykle roads on a map. The roads are color-coded based on the road difficulty. The user can see various lists which help her choose an appropriate road, e.g. roads that cross a river, roads that are nearby lakes, roads that pass through multiple countries, etc.
-
-## Data sources
-
-- [Open Street Maps](https://www.openstreetmap.org/)
-
-## My project
-
-Fill in (either in English, or in Slovak):
-
-**Application description**: `<fill in>`
-
-**Data source**: `<fill in>`
-
-**Technologies used**: `<fill in>`
+**[Documentation](documentation.md)**
