@@ -23,6 +23,7 @@ let client = new pg.Client({
 })();
 
 
+//page loading
 app.get('/', async function (req, res) {
 	try {		
 		res.render('index', {greencities: results_json_green_cities});
@@ -32,17 +33,16 @@ app.get('/', async function (req, res) {
 	}
 });
 
+//query and API for calculating building-up ratio in polygon
 var query_buildpercent = "	SELECT SUM(ST_Area(ST_Intersection(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON($1),4326),3857),way)))/				\
 								   ST_Area(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON($1),4326),3857))*100	AS result 							\
 							FROM planet_osm_polygon osm 																						\
 							WHERE ST_Intersects(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON($1),4326),3857),way) AND osm.building IS NOT NULL"
-
 app.post('/api/buildpercent', jsonParser, async function(req, res) {
 	try {
 		var values = [req.body];
 		console.log(JSON.stringify(req.body))
 		var result = await client.query(query_buildpercent,values);
-		console.log(result.rows);
 		res.json(result.rows);
 	} catch (err) {
 		console.log(err);
@@ -50,7 +50,7 @@ app.post('/api/buildpercent', jsonParser, async function(req, res) {
   }
 });
 
-
+//query for neighboring cities
 var query_neighboring = "	SELECT \
 								 cities.name as name\
 							FROM \
@@ -62,7 +62,8 @@ var query_neighboring = "	SELECT \
 								FROM planet_osm_polygon \
 								WHERE boundary='administrative' AND admin_level='9' AND osm_id = $1)  as city\
 							ON ST_Touches(cities.way,city.way) "
-							
+
+//query for interesting places around the city						
 var query_poi = "	SELECT 	\
 						COUNT(*) as count	\
 					FROM planet_osm_point poi	\
@@ -74,6 +75,7 @@ var query_poi = "	SELECT 	\
 					WHERE 	\
 						poi.historic IS NOT NULL OR poi.sport IS NOT NULL"
 
+//query for distance between city and Bratislava
 var query_distance_ba = "	SELECT \
 								 ST_Distance(ST_Transform(ba_city.way,2163),ST_Transform(city.way,2163))/1000 AS distance\
 							FROM (	\
@@ -84,7 +86,8 @@ var query_distance_ba = "	SELECT \
 								SELECT way 	\
 								FROM planet_osm_polygon 	\
 								WHERE boundary='administrative' AND admin_level='9' AND osm_id=$1 LIMIT 1)  as city"
-								
+
+//query for check if railway is in city
 var query_rail = "	SELECT 	\
 						SUM(ST_Length(osm.way)) as rail_length	\
 					FROM planet_osm_roads osm	\
@@ -94,6 +97,8 @@ var query_rail = "	SELECT 	\
 app.post('/api/description', jsonParser, async function(req, res) {
 	try {
 		var values = [req.body];
+		
+		//prepare list of neighboring cities
 		var result = await client.query(query_neighboring,[values[0].osm_id]);
 		var i;
 		var cities = "<ul>"
@@ -104,18 +109,19 @@ app.post('/api/description', jsonParser, async function(req, res) {
 		}
 		cities += "</ul>";
 		
+		//calculate distance between city and Bratislava
 		var result = await client.query(query_distance_ba,[values[0].osm_id]);
 		var distance_ba = result.rows[0].distance;
 		
+		//count poi around the city
 		var result = await client.query(query_poi,[values[0].osm_id]);
 		var poi_count = result.rows[0].count;
 		
-		
+		//check if railway is in the city
 		var result = await client.query(query_rail,[values[0].osm_id]);
-		console.log(query_rail)
-		console.log(result)
 		var rail_length = result.rows[0].rail_length;
 		
+		//make responce json
 		var results_json = {
 			neighboring_cities : cities,
 			distance_ba : distance_ba,
@@ -129,7 +135,7 @@ app.post('/api/description', jsonParser, async function(req, res) {
   }
 });
 
-
+//query for calculate TOP10 green cities on map
 let query = "	SELECT \
 					name, 	\
 					osm_id, \

@@ -118,9 +118,12 @@
 						"text-anchor": "top"
 					}
 				}
-				var data = '<%- JSON.stringify(greencities) %>';
 				
+				//load data from parameter of render
+				var data = '<%- JSON.stringify(greencities) %>';
 				data = JSON.parse(data);
+				
+				//add points on map
 				var i;
 				for(i = 0; i < 10; ++i) {
 					
@@ -142,7 +145,7 @@
 				map.addLayer(layer);
 			});
 			
-			
+			//function to view detail about city on map
 			map.on('click', async function(e) {
 				var features = map.queryRenderedFeatures(e.point, {
 					layers: ['greenCities'] 
@@ -164,8 +167,6 @@
 				var response_data = await response.json();	
 				console.log(response_data)
 				
-				var distance = 100
-				var poi = 10
 				if(response_data.rail_length > 0) {
 					var popup = new mapboxgl.Popup({ offset: [0, -15] })
 						.setLngLat(feature.geometry.coordinates)

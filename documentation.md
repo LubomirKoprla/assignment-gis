@@ -1,4 +1,5 @@
 
+
 # Overview
 
 Application shows TOP10 green cities in Slovakia. You can draw polygon on map and application calculates the ratio of built-up area in polygon. When you can click on "green city", application show description of city: if there is railway, distance from Bratislava, number of POI arround the city and   neighboring cities
@@ -18,7 +19,7 @@ The application has 2 separate parts, the client which is a [frontend web applic
 
 # Frontend
 
-The frontend application is a static HTML page (`index.html`), which shows a mapbox.js widget. It is displaying hotels, which are mostly in cities, thus the map style is based on the Emerald style. I modified the style to better highlight main sightseeing points, restaurants and bus stops, since they are all important when selecting a hotel. I also highlighted rails tracks to assist in finding a quiet location.
+The frontend application is a static HTML page (`index.html`), which shows a mapbox.js widget. It is displaying TOP10 green cities and you can draw polygon to calculate the ratio of built-up area. You can click on green city icon to show detail about city. We modified map visualization in mapbox web app to improve user experience with using our map.
 
 
 # Backend
