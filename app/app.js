@@ -65,7 +65,8 @@ var query_neighboring = "	SELECT \
 
 //query for interesting places around the city						
 var query_poi = "	SELECT 	\
-						COUNT(*) as count	\
+						poi.name as name, \
+						ST_AsGeoJSON(ST_Transform(poi.way, 4326)) as coordinates	\
 					FROM planet_osm_point poi	\
 					JOIN (	\
 						SELECT way 	\
@@ -73,7 +74,7 @@ var query_poi = "	SELECT 	\
 						WHERE boundary='administrative' AND admin_level='9' AND osm_id = $1 LIMIT 1)  as city	\
 					ON	ST_DWithin(poi.way,city.way,4000)	\
 					WHERE 	\
-						poi.historic IS NOT NULL OR poi.sport IS NOT NULL"
+						(poi.historic IS NOT NULL OR poi.tourism IS NOT NULL )AND poi.name IS NOT NULL"
 
 //query for distance between city and Bratislava
 var query_distance_ba = "	SELECT \
@@ -115,8 +116,16 @@ app.post('/api/description', jsonParser, async function(req, res) {
 		
 		//count poi around the city
 		var result = await client.query(query_poi,[values[0].osm_id]);
-		var poi_count = result.rows[0].count;
-		
+		var i;
+		var results_json_poi = {};
+		for(i = 0; i < result.rows.length; ++i) {
+			results_json_poi[i] = {
+				x : JSON.parse(result.rows[i].coordinates).coordinates[0],
+				y : JSON.parse(result.rows[i].coordinates).coordinates[1],
+				name : result.rows[i].name
+			};
+		}
+			
 		//check if railway is in the city
 		var result = await client.query(query_rail,[values[0].osm_id]);
 		var rail_length = result.rows[0].rail_length;
@@ -125,7 +134,7 @@ app.post('/api/description', jsonParser, async function(req, res) {
 		var results_json = {
 			neighboring_cities : cities,
 			distance_ba : distance_ba,
-			poi_count : poi_count,
+			poi : results_json_poi,
 			rail_length : rail_length
 		};
 		res.json(results_json);

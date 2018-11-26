@@ -48,15 +48,16 @@ ON ST_Touches(cities.way,city.way);
 
 -- Query for POI around city
 SELECT 	
-	COUNT(*) as count	
+	poi.name as name, 
+	ST_AsGeoJSON(ST_Transform(poi.way, 4326)) as coordinates	
 FROM planet_osm_point poi	
 JOIN (	
 	SELECT way 	
 	FROM planet_osm_polygon 	
-	WHERE boundary='administrative' AND admin_level='9' AND osm_id = $1 LIMIT 1 )  as city	
+	WHERE boundary='administrative' AND admin_level='9' AND osm_id = $1 LIMIT 1)  as city	
 ON	ST_DWithin(poi.way,city.way,4000)	
 WHERE 	
-	poi.historic IS NOT NULL OR poi.sport IS NOT NULL;
+	(poi.historic IS NOT NULL OR poi.tourism IS NOT NULL )AND poi.name IS NOT NULL
 	
 -- Query for distance between city and Bratislava
 SELECT 

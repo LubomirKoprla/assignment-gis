@@ -170,17 +170,66 @@
 				if(response_data.rail_length > 0) {
 					var popup = new mapboxgl.Popup({ offset: [0, -15] })
 						.setLngLat(feature.geometry.coordinates)
-						.setHTML('<h3>' + feature.properties.title + '</h3><p>Dostupné vlakom</p><p>' + Math.round(response_data.distance_ba) + ' km od Bratislavy</p><p>' + response_data.poi_count + ' zaujimavosti v okoli</p><h4>Susedné obce</h4>' +  response_data.neighboring_cities)
+						.setHTML('<h3>' + feature.properties.title + '</h3><p>Dostupné vlakom</p><p>' + Math.round(response_data.distance_ba) + ' km od Bratislavy</p><p>' + Object.keys(response_data.poi).length + ' zaujimavosti v okoli</p><h4>Susedné obce</h4>' +  response_data.neighboring_cities)
 						.setLngLat(feature.geometry.coordinates)
 						.addTo(map);
 				}	
 				else {
 					var popup = new mapboxgl.Popup({ offset: [0, -15] })
 						.setLngLat(feature.geometry.coordinates)
-						.setHTML('<h3>' + feature.properties.title + '</h3><p>' + Math.round(response_data.distance_ba) + ' km od Bratislavy</p><p>' + response_data.poi_count + ' zaujimavosti v okoli</p><h4>Susedné obce</h4>' +  response_data.neighboring_cities)
+						.setHTML('<h3>' + feature.properties.title + '</h3><p>' + Math.round(response_data.distance_ba) + ' km od Bratislavy</p><p>' + Object.keys(response_data.poi).length + ' zaujimavosti v okoli</p><h4>Susedné obce</h4>' +  response_data.neighboring_cities)
 						.setLngLat(feature.geometry.coordinates)
 						.addTo(map);
 				}
+				
+				var layer = {
+					"id": "poi",
+					"type": "symbol",
+					"source": {
+						"type": "geojson",
+						"data": {
+							"type": "FeatureCollection",
+							"features": []
+						}
+					},
+					"layout": {
+						"icon-image": "{icon}-15",
+						"text-field": "{title}",
+						"text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+						"text-offset": [0, 0.6],
+						"text-anchor": "top"
+					}
+				}
+				
+				//load data from parameter of render
+				var data = response_data.poi;
+				console.log(data);
+				//data = JSON.parse(data);
+				
+				//add points on map
+				var i;
+				for(i = 0; i < Object.keys(data).length; ++i) {
+					
+					layer.source.data.features[i] = {
+								"type": "Feature",
+								"geometry": {
+									"type": "Point",
+									"coordinates": [data[i].x, data[i].y]
+								},
+								"properties": {
+									"title": data[i].name,
+									"icon": "marker",
+								}
+							}
+					
+				}
+				
+				if(map.getLayer("poi")) {
+					
+					map.removeLayer("poi");
+					map.removeSource("poi");
+				}
+				map.addLayer(layer);
 					
 				
 			});
